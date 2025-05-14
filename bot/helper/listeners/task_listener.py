@@ -361,11 +361,14 @@ class TaskListener(TaskConfig):
             msg += f"\n┖ <b>Task By</b> → {self.tag}\n\n"
 
             if self.bot_pm:
+                buttons = ButtonMaker()
+                buttons.url_button("Go to PM", f"t.me/{TgClient.BNAME}")
+                button = buttons.build_menu(1)
                 pmsg = msg
                 pmsg += "〶 <b><u>Action Performed :</u></b>\n"
                 pmsg += "⋗ <i>File(s) have been sent to User PM</i>\n\n"
                 if self.is_super_chat:
-                    await send_message(self.message, pmsg)
+                    await send_message(self.message, pmsg, button)
 
             if not files and not self.is_super_chat:
                 await send_message(self.message, msg)
