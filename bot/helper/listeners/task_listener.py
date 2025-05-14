@@ -347,8 +347,8 @@ class TaskListener(TaskConfig):
         ):
             await database.rm_complete_task(self.message.link)
         msg = (
-            f"<b><i>{escape(self.name)}</i></b>\n│"
-            f"\n┟ <b>Task Size</b> → {get_readable_file_size(self.size)}"
+            f"<blockquote><b><i>{escape(self.name)}</i></b></blockquote>\n"
+            f"\n<blockquote>┟ <b>Task Size</b> → {get_readable_file_size(self.size)}"
             f"\n┠ <b>Time Taken</b> → {get_readable_time(time() - self.message.date.timestamp())}"
             f"\n┠ <b>In Mode</b> → {self.mode[0]}"
             f"\n┠ <b>Out Mode</b> → {self.mode[1]}"
@@ -358,15 +358,15 @@ class TaskListener(TaskConfig):
             msg += f"\n┠ <b>Total Files</b> → {folders}"
             if mime_type != 0:
                 msg += f"\n┠ <b>Corrupted Files</b> → {mime_type}"
-            msg += f"\n┖ <b>Task By</b> → {self.tag}\n\n"
+            msg += f"\n┖ <b>Task By</b> → {self.tag}</blockquote>\n\n"
 
             if self.bot_pm:
                 buttons = ButtonMaker()
                 buttons.url_button("Go to PM", f"t.me/{TgClient.BNAME}")
                 button = buttons.build_menu(1)
                 pmsg = msg
-                pmsg += "〶 <b><u>Action Performed :</u></b>\n"
-                pmsg += "⋗ <i>File(s) have been sent to User PM</i>\n\n"
+                pmsg += "<blockquote>〶 <b><u>Action Performed :</u>\n"
+                pmsg += "⋗ <i>File(s) have been sent to User PM</i></b></blockquote>\n\n"
                 if self.is_super_chat:
                     await send_message(self.message, pmsg, button)
 
