@@ -5,7 +5,7 @@ from contextlib import suppress
 from secrets import token_hex
 from yt_dlp import YoutubeDL, DownloadError
 
-from .... import task_dict_lock, task_dict
+from .... import task_dict_lock, task_dict, user_data
 from ....core.config_manager import BinConfig
 from ...ext_utils.bot_utils import sync_to_async, async_to_sync
 from ...ext_utils.task_manager import (
@@ -62,7 +62,6 @@ class YoutubeDLHelper:
             "progress_hooks": [self._on_download_progress],
             "logger": MyLogger(self, self._listener),
             "usenetrc": True,
-            "cookiefile": "cookies.txt",
             "allow_multiple_video_streams": True,
             "allow_multiple_audio_streams": True,
             "noprogress": True,
@@ -80,6 +79,17 @@ class YoutubeDLHelper:
                 "extractor": lambda n: 3,
             },
         }
+        cookie_to_use = (
+            usr_cookie
+            if not self._listener.user_dict.get("USE_DEFAULT_COOKIE", False)
+            and (usr_cookie := self._listener.user_dict.get("USER_COOKIE_FILE", ""))
+            and ospath.exists(usr_cookie)
+            else "cookies.txt"
+        )
+        self.opts["cookiefile"] = cookie_to_use
+        LOGGER.info(
+            f"Using cookies.txt file: {cookie_to_use} | User ID : {self._listener.user_id}"
+        )
 
     @property
     def download_speed(self):

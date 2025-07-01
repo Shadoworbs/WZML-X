@@ -16,11 +16,13 @@ class Config:
     DATABASE_URL = ""
     DEFAULT_UPLOAD = "rc"
     DELETE_LINKS = False
+    DEBRID_LINK_API = ""
     DISABLE_TORRENTS = False
     DISABLE_LEECH = False
     DISABLE_BULK = False
     DISABLE_MULTI = False
     DISABLE_SEED = False
+    DISABLE_FF_MODE = False
     EQUAL_SPLITS = False
     EXCLUDED_EXTENSIONS = ""
     FFMPEG_CMDS = {}
@@ -56,6 +58,7 @@ class Config:
     STORAGE_LIMIT = 0
     LEECH_DUMP_CHAT = ""
     LINKS_LOG_ID = ""
+    MIRROR_LOG_ID = ""
     CLEAN_LOG_MSG = False
     LEECH_PREFIX = ""
     LEECH_CAPTION = ""
@@ -111,6 +114,10 @@ class Config:
     USE_SERVICE_ACCOUNTS = False
     WEB_PINCODE = True
     YT_DLP_OPTIONS = {}
+    YT_DESP = "Uploaded with WZML-X bot"
+    YT_TAGS = ["telegram", "bot", "youtube"]
+    YT_CATEGORY_ID = 22
+    YT_PRIVACY_STATUS = "unlisted"
 
     @classmethod
     def get(cls, key):

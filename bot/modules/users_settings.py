@@ -45,13 +45,21 @@ leech_options = [
 ]
 rclone_options = ["RCLONE_CONFIG", "RCLONE_PATH", "RCLONE_FLAGS"]
 gdrive_options = ["TOKEN_PICKLE", "GDRIVE_ID", "INDEX_URL"]
-ffset_options = ["FFMPEG_CMDS"]
+ffset_options = [
+    "FFMPEG_CMDS",
+    "METADATA",
+    "AUDIO_METADATA",
+    "VIDEO_METADATA",
+    "SUBTITLE_METADATA",
+]
 advanced_options = [
     "EXCLUDED_EXTENSIONS",
     "NAME_SWAP",
     "YT_DLP_OPTIONS",
     "UPLOAD_PATHS",
+    "USER_COOKIE_FILE",
 ]
+yt_options = ["YT_DESP", "YT_TAGS", "YT_CATEGORY_ID", "YT_PRIVACY_STATUS"]
 
 user_settings_text = {
     "THUMBNAIL": (
@@ -176,6 +184,77 @@ Here I will explain how to use mltb.* which is reference to files you want to wo
 ┖ <b>Time Left :</b> <code>60 sec</code>
 """,
     ),
+    "METADATA": (
+        "🏷 Global Metadata (key=value|key=value)",
+        "Apply metadata to all media files with dynamic variables.",
+        """<i>📝 Send metadata as</i> <code>key=value|key2=value2</code>
+
+<b>🔧 Dynamic Variables:</b>
+• <code>{filename}</code> - Original filename
+• <code>{basename}</code> - Name without extension
+• <code>{audiolang}</code> - Audio language (English/Hindi etc.)
+• <code>{year}</code> - Year from filename
+
+<b>📋 Example:</b>
+<code>title={basename}|artist={audiolang} Version|year={year}</code>
+
+⏱ <b>Time Left:</b> <code>60 sec</code>""",
+    ),
+    "AUDIO_METADATA": (
+        "🎵 Audio Stream Metadata",
+        "Metadata applied to each audio track separately.",
+        """<i>🎧 Audio stream metadata with per-track language support</i>
+
+<b>📋 Example:</b>
+<code>language={audiolang}|title=Audio - {audiolang}</code>
+
+⏱ <b>Time Left:</b> <code>60 sec</code>""",
+    ),
+    "VIDEO_METADATA": (
+        "🎥 Video Stream Metadata",
+        "Metadata applied to video streams.",
+        """<i>📹 Video stream metadata for visual tracks</i>
+
+<b>📋 Example:</b>
+<code>title={basename}|comment=HD Video</code>
+
+⏱ <b>Time Left:</b> <code>60 sec</code>""",
+    ),
+    "SUBTITLE_METADATA": (
+        "💬 Subtitle Stream Metadata",
+        "Metadata applied to each subtitle track separately.",
+        """<i>📄 Subtitle stream metadata with per-track language support</i>
+
+<b>📋 Example:</b>
+<code>language={sublang}|title=Subtitles - {sublang}</code>
+
+⏱ <b>Time Left:</b> <code>60 sec</code>""",
+    ),
+    "YT_DESP": (
+        "String",
+        "Custom description for YouTube uploads. Default is used if not set.",
+        "<i>Send your custom YouTube description.</i> \nTime Left : <code>60 sec</code>",
+    ),
+    "YT_TAGS": (
+        "Comma-separated strings",
+        "Custom tags for YouTube uploads (e.g., tag1,tag2,tag3). Default is used if not set.",
+        "<i>Send your custom YouTube tags as a comma-separated list.</i> \nTime Left : <code>60 sec</code>",
+    ),
+    "YT_CATEGORY_ID": (
+        "Number",
+        "Custom category ID for YouTube uploads. Default is used if not set.",
+        "<i>Send your custom YouTube category ID (e.g., 22).</i> \nTime Left : <code>60 sec</code>",
+    ),
+    "YT_PRIVACY_STATUS": (
+        "public, private, or unlisted",
+        "Custom privacy status for YouTube uploads. Default is used if not set.",
+        "<i>Send your custom YouTube privacy status (public, private, or unlisted).</i> \nTime Left : <code>60 sec</code>",
+    ),
+    "USER_COOKIE_FILE": (
+        "File",
+        "User's YT-DLP Cookie File to authenticate access to websites and youtube.",
+        "<i>Send your cookie file (e.g., cookies.txt or abc.txt).</i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
+    ),
 }
 
 
@@ -195,7 +274,7 @@ async def get_user_settings(from_user, stype="main"):
         buttons.data_button("Leech Settings", f"userset {user_id} leech")
         buttons.data_button("FF Media Settings", f"userset {user_id} ffset")
         buttons.data_button(
-            "Advanced Settings", f"userset {user_id} advanced", position="l_body"
+            "Mics Settings", f"userset {user_id} advanced", position="l_body"
         )
 
         if user_dict and any(
@@ -213,7 +292,7 @@ async def get_user_settings(from_user, stype="main"):
             ]
         ):
             buttons.data_button(
-                "Reset All", f"userset {user_id} reset all", position="footer"
+                "Reset All", f"userset {user_id} confirm_reset_all", position="footer"
             )
         buttons.data_button("Close", f"userset {user_id} close", position="footer")
 
@@ -248,13 +327,21 @@ async def get_user_settings(from_user, stype="main"):
 
         buttons.data_button("Back", f"userset {user_id} back", "footer")
         buttons.data_button("Close", f"userset {user_id} close", "footer")
+
+        def_cookies = user_dict.get("USE_DEFAULT_COOKIE", False)
+        cookie_mode = "Owner's Cookie" if def_cookies else "User's Cookie"
+        buttons.data_button(
+            f"Swap to {'OWNER' if not def_cookies else 'USER'}'s Cookie File",
+            f"userset {user_id} tog USE_DEFAULT_COOKIE {'f' if def_cookies else 't'}",
+        )
         btns = buttons.build_menu(1)
 
         text = f"""⌬ <b>General Settings :</b>
 ┟ <b>Name</b> → {user_name}
 ┃
 ┠ <b>Default Upload Package</b> → <b>{du}</b>
-┖ <b>Default Usage Mode</b> → <b>{tr}'s</b> token/config
+┠ <b>Default Usage Mode</b> → <b>{tr}'s</b> token/config
+┖ <b>yt Cookies Mode</b> → <b>{cookie_mode}</b>
 """
 
     elif stype == "leech":
@@ -509,6 +596,7 @@ async def get_user_settings(from_user, stype="main"):
         else:
             sd_msg = "Disabled"
 
+        buttons.data_button("YT Up Tools", f"userset {user_id} yttools")
         buttons.data_button("Back", f"userset {user_id} back", "footer")
         buttons.data_button("Close", f"userset {user_id} close", "footer")
         btns = buttons.build_menu(1)
@@ -525,7 +613,9 @@ async def get_user_settings(from_user, stype="main"):
 """
 
     elif stype == "ffset":
-        buttons.data_button("FFmpeg Cmds", f"userset {user_id} menu FFMPEG_CMDS")
+        buttons.data_button(
+            "FFmpeg Cmds", f"userset {user_id} menu FFMPEG_CMDS", "header"
+        )
         if user_dict.get("FFMPEG_CMDS", False):
             ffc = user_dict["FFMPEG_CMDS"]
         elif "FFMPEG_CMDS" not in user_dict and Config.FFMPEG_CMDS:
@@ -536,10 +626,52 @@ async def get_user_settings(from_user, stype="main"):
         if isinstance(ffc, dict):
             ffc = "\n" + "\n".join(
                 [
-                    f"{no}. <b>{key}</b>: <code>{value[0]}</code>"
+                    f"{no}. <b>{key}</b>: <code>{escape(str(value[0]))}</code>"
                     for no, (key, value) in enumerate(ffc.items(), start=1)
                 ]
             )
+
+        buttons.data_button("Metadata", f"userset {user_id} menu METADATA")
+        metadata_setting = user_dict.get("METADATA")
+        display_meta_val = "<b>Not Set</b>"
+        if isinstance(metadata_setting, dict) and metadata_setting:
+            display_meta_val = ", ".join(
+                f"{k}={escape(str(v))}" for k, v in metadata_setting.items()
+            )
+            display_meta_val = f"<code>{display_meta_val}</code>"
+        elif isinstance(metadata_setting, str) and metadata_setting:  # Legacy
+            display_meta_val = (
+                f"<code>{escape(metadata_setting)}</code> [<i>Legacy, needs re-set</i>]"
+            )
+
+        buttons.data_button("Audio Metadata", f"userset {user_id} menu AUDIO_METADATA")
+        audio_meta_setting = user_dict.get("AUDIO_METADATA")
+        display_audio_meta = "<b>Not Set</b>"
+        if isinstance(audio_meta_setting, dict) and audio_meta_setting:
+            display_audio_meta = ", ".join(
+                f"{k}={escape(str(v))}" for k, v in audio_meta_setting.items()
+            )
+            display_audio_meta = f"<code>{display_audio_meta}</code>"
+
+        buttons.data_button("Video Metadata", f"userset {user_id} menu VIDEO_METADATA")
+        video_meta_setting = user_dict.get("VIDEO_METADATA")
+        display_video_meta = "<b>Not Set</b>"
+        if isinstance(video_meta_setting, dict) and video_meta_setting:
+            display_video_meta = ", ".join(
+                f"{k}={escape(str(v))}" for k, v in video_meta_setting.items()
+            )
+            display_video_meta = f"<code>{display_video_meta}</code>"
+
+        buttons.data_button(
+            "Subtitle Metadata", f"userset {user_id} menu SUBTITLE_METADATA"
+        )
+        subtitle_meta_setting = user_dict.get("SUBTITLE_METADATA")
+        display_subtitle_meta = "<b>Not Set</b>"
+        if isinstance(subtitle_meta_setting, dict) and subtitle_meta_setting:
+            display_subtitle_meta = ", ".join(
+                f"{k}={escape(str(v))}" for k, v in subtitle_meta_setting.items()
+            )
+            display_subtitle_meta = f"<code>{display_subtitle_meta}</code>"
 
         buttons.data_button("Back", f"userset {user_id} back", "footer")
         buttons.data_button("Close", f"userset {user_id} close", "footer")
@@ -548,7 +680,12 @@ async def get_user_settings(from_user, stype="main"):
         text = f"""⌬ <b>FF Settings :</b>
 ┟ <b>Name</b> → {user_name}
 ┃
-┖ <b>FFmpeg Commands</b> → {ffc}"""
+┠ <b>FFmpeg CLI Commands</b> → {ffc}
+┃
+┠ <b>Default Metadata</b> → {display_meta_val}
+┠ <b>Audio Metadata</b> → {display_audio_meta}
+┠ <b>Video Metadata</b> → {display_video_meta}
+┖ <b>Subtitle Metadata</b> → {display_subtitle_meta}"""
 
     elif stype == "advanced":
         buttons.data_button(
@@ -586,6 +723,14 @@ async def get_user_settings(from_user, stype="main"):
             upload_paths = "None"
         buttons.data_button("Upload Paths", f"userset {user_id} menu UPLOAD_PATHS")
 
+        yt_cookie_path = f"cookies/{user_id}/cookies.txt"
+        user_cookie_msg = (
+            "Exists" if await aiopath.exists(yt_cookie_path) else "Not Exists"
+        )
+        buttons.data_button(
+            "YT Cookie File", f"userset {user_id} menu USER_COOKIE_FILE"
+        )
+
         buttons.data_button("Back", f"userset {user_id} back", "footer")
         buttons.data_button("Close", f"userset {user_id} close", "footer")
         btns = buttons.build_menu(1)
@@ -596,7 +741,56 @@ async def get_user_settings(from_user, stype="main"):
 ┠ <b>Name Swaps</b> → {ns_msg}
 ┠ <b>Excluded Extensions</b> → <code>{ex_ex}</code>
 ┠ <b>Upload Paths</b> → <b>{upload_paths}</b>
-┖ <b>YT-DLP Options</b> → <code>{ytopt}</code>"""
+┠ <b>YT-DLP Options</b> → <code>{ytopt}</code>
+┖ <b>YT User Cookie File</b> → <b>{user_cookie_msg}</b>"""
+    elif stype == "yttools":
+        buttons.data_button("YT Description", f"userset {user_id} menu YT_DESP")
+        yt_desp_val = user_dict.get(
+            "YT_DESP",
+            Config.YT_DESP if hasattr(Config, "YT_DESP") else "Not Set (Uses Default)",
+        )
+
+        buttons.data_button("YT Tags", f"userset {user_id} menu YT_TAGS")
+        yt_tags_val = user_dict.get(
+            "YT_TAGS",
+            Config.YT_TAGS if hasattr(Config, "YT_TAGS") else "Not Set (Uses Default)",
+        )
+        if isinstance(yt_tags_val, list):
+            yt_tags_val = ",".join(yt_tags_val)
+
+        buttons.data_button("YT Category ID", f"userset {user_id} menu YT_CATEGORY_ID")
+        yt_cat_id_val = user_dict.get(
+            "YT_CATEGORY_ID",
+            (
+                Config.YT_CATEGORY_ID
+                if hasattr(Config, "YT_CATEGORY_ID")
+                else "Not Set (Uses Default)"
+            ),
+        )
+
+        buttons.data_button(
+            "YT Privacy Status", f"userset {user_id} menu YT_PRIVACY_STATUS"
+        )
+        yt_privacy_val = user_dict.get(
+            "YT_PRIVACY_STATUS",
+            (
+                Config.YT_PRIVACY_STATUS
+                if hasattr(Config, "YT_PRIVACY_STATUS")
+                else "Not Set (Uses Default)"
+            ),
+        )
+
+        buttons.data_button("Back", f"userset {user_id} back mirror", "footer")
+        buttons.data_button("Close", f"userset {user_id} close", "footer")
+        btns = buttons.build_menu(2)
+
+        text = f"""⌬ <b>YouTube Tools Settings:</b>
+┟ <b>Name</b> → {user_name}
+┃
+┠ <b>YT Description</b> → <code>{escape(str(yt_desp_val))}</code>
+┠ <b>YT Tags</b> → <code>{escape(str(yt_tags_val))}</code>
+┠ <b>YT Category ID</b> → <code>{escape(str(yt_cat_id_val))}</code>
+┖ <b>YT Privacy Status</b> → <code>{escape(str(yt_privacy_val))}</code>"""
 
     return text, btns
 
@@ -630,6 +824,11 @@ async def add_file(_, message, ftype, rfunc):
         tpath = f"{getcwd()}/tokens/"
         await makedirs(tpath, exist_ok=True)
         des_dir = f"{tpath}{user_id}.pickle"
+        await message.download(file_name=des_dir)
+    elif ftype == "USER_COOKIE_FILE":
+        cpath = f"{getcwd()}/cookies/{user_id}"
+        await makedirs(cpath, exist_ok=True)
+        des_dir = f"{cpath}/cookies.txt"
         await message.download(file_name=des_dir)
     await delete_message(message)
     update_user_ldata(user_id, ftype, des_dir)
@@ -691,6 +890,69 @@ async def set_option(_, message, option, rfunc):
         for x in fx:
             x = x.lstrip(".")
             value.append(x.strip().lower())
+    elif option == "YT_TAGS":
+        if isinstance(value, str):
+            value = [tag.strip() for tag in value.split(",") if tag.strip()]
+        elif not isinstance(value, list):
+            await send_message(message, "YT Tags must be a comma-separated string.")
+            return
+    elif option == "YT_CATEGORY_ID":
+        if isinstance(value, str) and value.isdigit():
+            value = int(value)
+        elif not isinstance(value, int):
+            await send_message(message, "YT Category ID must be a whole number.")
+            return
+    elif option == "YT_PRIVACY_STATUS":
+        allowed_statuses = ["public", "private", "unlisted"]
+        if not isinstance(value, str) or value.lower() not in allowed_statuses:
+            await send_message(
+                message,
+                f"YT Privacy Status must be one of: {', '.join(allowed_statuses)}.",
+            )
+            return
+        value = value.lower()
+    elif option in [
+        "METADATA",
+        "AUDIO_METADATA",
+        "VIDEO_METADATA",
+        "SUBTITLE_METADATA",
+    ]:
+        parsed_metadata_dict = {}
+        if value and isinstance(value, str):
+            if value.strip() == "":
+                value = {}
+            else:
+                parts = []
+                current = ""
+                i = 0
+                while i < len(value):
+                    if value[i] == "\\" and i + 1 < len(value) and value[i + 1] == "|":
+                        current += "|"
+                        i += 2
+                    elif value[i] == "|":
+                        parts.append(current)
+                        current = ""
+                        i += 1
+                    else:
+                        current += value[i]
+                        i += 1
+                if current:
+                    parts.append(current)
+
+                for part in parts:
+                    if "=" in part:
+                        key, val_str = part.split("=", 1)
+                        parsed_metadata_dict[key.strip()] = val_str.strip()
+                if not parsed_metadata_dict and value.strip() != "":
+                    await send_message(
+                        message,
+                        "Malformed metadata string. Format: key1=value1|key2=value2. Use \\| to escape pipe characters.",
+                    )
+                    return
+                value = parsed_metadata_dict
+        else:
+            value = {}
+
     elif option in ["UPLOAD_PATHS", "FFMPEG_CMDS", "YT_DLP_OPTIONS"]:
         if value.startswith("{") and value.endswith("}"):
             try:
@@ -715,10 +977,11 @@ async def get_menu(option, message, user_id):
         "THUMBNAIL": f"thumbnails/{user_id}.jpg",
         "RCLONE_CONFIG": f"rclone/{user_id}.conf",
         "TOKEN_PICKLE": f"tokens/{user_id}.pickle",
+        "USER_COOKIE_FILE": f"cookies/{user_id}/cookies.txt",
     }
 
     buttons = ButtonMaker()
-    if option in ["THUMBNAIL", "RCLONE_CONFIG", "TOKEN_PICKLE"]:
+    if option in ["THUMBNAIL", "RCLONE_CONFIG", "TOKEN_PICKLE", "USER_COOKIE_FILE"]:
         key = "file"
     else:
         key = "set"
@@ -749,6 +1012,8 @@ async def get_menu(option, message, user_id):
         back_to = "rclone"
     elif option in gdrive_options:
         back_to = "gdrive"
+    elif option in yt_options:
+        back_to = "yttools"
     elif option in ffset_options:
         back_to = "ffset"
     elif option in advanced_options:
@@ -762,7 +1027,43 @@ async def get_menu(option, message, user_id):
         val = "<b>Exists</b>"
     elif option == "LEECH_SPLIT_SIZE":
         val = get_readable_file_size(val)
-    text = f"""⌬ <b><u>Menu Settings :</u></b>
+    elif option == "METADATA":
+        current_meta_val = user_dict.get(option)
+        if isinstance(current_meta_val, dict) and current_meta_val:
+            val = ", ".join(
+                f"{k}={escape(str(v))}" for k, v in current_meta_val.items()
+            )
+            val = f"<code>{val}</code>"
+        elif isinstance(current_meta_val, str) and current_meta_val:
+            val = (
+                f"<code>{escape(current_meta_val)}</code> [<i>Legacy, needs re-set</i>]"
+            )
+        elif not current_meta_val:
+            val = "<b>Not Set</b>"
+
+        if val is None:
+            val = "<b>Not Exists</b>"
+
+    if option == "METADATA":
+        text = f"""⌬ <b><u>Menu Settings :</u></b>
+│
+┟ <b>Option</b> → {option}
+┃
+┠ <b>Option's Value</b> → {val if val else "<b>Not Exists</b>"}
+┃
+┠ <b>Default Input Type</b> → {user_settings_text[option][0]}
+┠ <b>Description</b> → {user_settings_text[option][1]}
+┃
+┠ <b>Dynamic Variables:</b>
+┠ • <code>{{filename}}</code> - Full filename
+┠ • <code>{{basename}}</code> - Filename without extension  
+┠ • <code>{{extension}}</code> - File extension
+┃
+┠ • <code>{{audiolang}}</code> - Audio language
+┖ • <code>{{sublang}}</code> - Subtitle language
+"""
+    else:
+        text = f"""⌬ <b><u>Menu Settings :</u></b>
 │
 ┟ <b>Option</b> → {option}
 ┃
@@ -823,6 +1124,7 @@ async def edit_user_settings(client, query):
     thumb_path = f"thumbnails/{user_id}.jpg"
     rclone_conf = f"rclone/{user_id}.conf"
     token_pickle = f"tokens/{user_id}.pickle"
+    yt_cookie_path = f"cookies/{user_id}/cookies.txt"
 
     user_dict = user_data.get(user_id, {})
     if user_id != int(data[1]):
@@ -840,6 +1142,9 @@ async def edit_user_settings(client, query):
     ]:
         await query.answer()
         await update_user_settings(query, data[2])
+    elif data[2] == "yttools":
+        await query.answer()
+        await update_user_settings(query, data[2])
     elif data[2] == "menu":
         await query.answer()
         await get_menu(data[3], message, user_id)
@@ -848,7 +1153,7 @@ async def edit_user_settings(client, query):
         update_user_ldata(user_id, data[3], data[4] == "t")
         if data[3] == "STOP_DUPLICATE":
             back_to = "gdrive"
-        elif data[3] == "USER_TOKENS":
+        elif data[3] in ["USER_TOKENS", "USE_DEFAULT_COOKIE"]:
             back_to = "general"
         else:
             back_to = "leech"
@@ -861,9 +1166,9 @@ async def edit_user_settings(client, query):
         buttons.data_button("Stop", f"userset {user_id} menu {data[3]} stop")
         buttons.data_button("Back", f"userset {user_id} menu {data[3]}", "footer")
         buttons.data_button("Close", f"userset {user_id} close", "footer")
-        await edit_message(
-            message, message.text.html + "\n\n" + text, buttons.build_menu(1)
-        )
+        prompt_title = data[3].replace("_", " ").title()
+        new_message_text = f"⌬ <b>Set {prompt_title}</b>\n\n{text}"
+        await edit_message(message, new_message_text, buttons.build_menu(1))
         rfunc = partial(get_menu, data[3], message, user_id)
         pfunc = partial(add_file, ftype=data[3], rfunc=rfunc)
         await event_handler(
@@ -897,11 +1202,18 @@ async def edit_user_settings(client, query):
         await event_handler(client, query, pfunc, rfunc)
     elif data[2] == "remove":
         await query.answer("Removed!", show_alert=True)
-        if data[3] in ["THUMBNAIL", "RCLONE_CONFIG", "TOKEN_PICKLE"]:
+        if data[3] in [
+            "THUMBNAIL",
+            "RCLONE_CONFIG",
+            "TOKEN_PICKLE",
+            "USER_COOKIE_FILE",
+        ]:
             if data[3] == "THUMBNAIL":
                 fpath = thumb_path
             elif data[3] == "RCLONE_CONFIG":
                 fpath = rclone_conf
+            elif data[3] == "USER_COOKIE_FILE":
+                fpath = yt_cookie_path
             else:
                 fpath = token_pickle
             if await aiopath.exists(fpath):
@@ -914,18 +1226,32 @@ async def edit_user_settings(client, query):
         await get_menu(data[3], message, user_id)
     elif data[2] == "reset":
         await query.answer("Reset Done!", show_alert=True)
-        if data[3] in user_dict:
-            del user_dict[data[3]]
-            await get_menu(data[3], message, user_id)
-        else:
+        user_dict.pop(data[3], None)
+        await database.update_user_data(user_id)
+        await get_menu(data[3], message, user_id)
+    elif data[2] == "confirm_reset_all":
+        await query.answer()
+        buttons = ButtonMaker()
+        buttons.data_button("Yes", f"userset {user_id} do_reset_all yes")
+        buttons.data_button("No", f"userset {user_id} do_reset_all no")
+        buttons.data_button("Close", f"userset {user_id} close", "footer")
+        text = "<i>Are you sure you want to reset all your user settings?</i>"
+        await edit_message(query.message, text, buttons.build_menu(2))
+    elif data[2] == "do_reset_all":
+        if data[3] == "yes":
+            await query.answer("Reset Done!", show_alert=True)
+            user_dict = user_data.get(user_id, {})
             for k in list(user_dict.keys()):
                 if k not in ("SUDO", "AUTH", "VERIFY_TOKEN", "VERIFY_TIME"):
                     del user_dict[k]
-            for fpath in [thumb_path, rclone_conf, token_pickle]:
+            for fpath in [thumb_path, rclone_conf, token_pickle, yt_cookie_path]:
                 if await aiopath.exists(fpath):
                     await remove(fpath)
             await update_user_settings(query)
-        await database.update_user_data(user_id)
+            await database.update_user_data(user_id)
+        else:
+            await query.answer("Reset Cancelled.", show_alert=True)
+            await update_user_settings(query)
     elif data[2] == "view":
         await query.answer()
         await send_file(message, thumb_path, name)

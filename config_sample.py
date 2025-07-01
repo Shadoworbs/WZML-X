@@ -40,6 +40,7 @@ DISABLE_LEECH = False
 DISABLE_BULK = False
 DISABLE_MULTI = False
 DISABLE_SEED = False
+DISABLE_FF_MODE = False
 
 # Telegraph
 AUTHOR_NAME = "WZML-X"
@@ -107,6 +108,12 @@ IS_TEAM_DRIVE = False
 STOP_DUPLICATE = False
 INDEX_URL = ""
 
+# YT Tools
+YT_DESP = "Uploaded to YouTube by WZML-X bot"
+YT_TAGS = ["telegram", "bot", "youtube"]  # or as a comma-separated string
+YT_CATEGORY_ID = 22
+YT_PRIVACY_STATUS = "unlisted"
+
 # Rclone
 RCLONE_PATH = ""
 RCLONE_FLAGS = ""
@@ -163,6 +170,7 @@ THUMBNAIL_LAYOUT = ""
 # Log Channels
 LEECH_DUMP_CHAT = ""
 LINKS_LOG_ID = ""
+MIRROR_LOG_ID = ""
 
 # qBittorrent/Aria2c
 TORRENT_TIMEOUT = 0

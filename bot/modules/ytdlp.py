@@ -3,11 +3,12 @@ from functools import partial
 from time import time
 
 from httpx import AsyncClient
+from aiofiles.os import path as aiopath
+from yt_dlp import YoutubeDL
 from pyrogram.filters import regex, user
 from pyrogram.handlers import CallbackQueryHandler
-from yt_dlp import YoutubeDL
 
-from .. import LOGGER, bot_loop, task_dict_lock, DOWNLOAD_DIR
+from .. import DOWNLOAD_DIR, LOGGER, bot_loop, task_dict_lock
 from ..core.config_manager import Config
 from ..helper.ext_utils.bot_utils import (
     COMMAND_USAGE,
@@ -315,6 +316,7 @@ class YtDlp(TaskListener):
             "-sp": 0,
             "link": "",
             "-m": "",
+            "-meta": "",
             "-opt": {},
             "-n": "",
             "-up": "",
@@ -328,6 +330,10 @@ class YtDlp(TaskListener):
         }
 
         arg_parser(input_list[1:], args)
+
+        if Config.DISABLE_FF_MODE and args.get("-ff"):
+            await send_message(self.message, "FFmpeg commands are currently disabled.")
+            return
 
         try:
             self.multi = int(args["-i"])
@@ -373,6 +379,14 @@ class YtDlp(TaskListener):
         self.folder_name = f"/{args["-m"]}".rstrip("/") if len(args["-m"]) > 0 else ""
         self.bot_trans = args["-bt"]
         self.user_trans = args["-ut"]
+        self.metadata_dict = self.default_metadata_dict.copy()
+        self.audio_metadata_dict = self.audio_metadata_dict.copy()
+        self.video_metadata_dict = self.video_metadata_dict.copy()
+        self.subtitle_metadata_dict = self.subtitle_metadata_dict.copy()
+        if meta := args["-meta"]:
+            self.metadata_dict = self.metadata_processor.merge_dicts(
+                self.default_metadata_dict, self.metadata_processor.parse_string(meta)
+            )
 
         is_bulk = args["-b"]
 
@@ -452,7 +466,18 @@ class YtDlp(TaskListener):
 
         self._set_mode_engine()
 
-        options = {"usenetrc": True, "cookiefile": "cookies.txt"}
+        cookie_to_use = (
+            usr_cookie
+            if not self.user_dict.get("USE_DEFAULT_COOKIE", False)
+            and (usr_cookie := self.user_dict.get("USER_COOKIE_FILE", ""))
+            and await aiopath.exists(usr_cookie)
+            else "cookies.txt"
+        )
+        LOGGER.info(
+            f"Using cookies.txt file: {cookie_to_use} | User ID : {self.user_id}"
+        )
+
+        options = {"usenetrc": True, "cookiefile": cookie_to_use}
         if opt:
             for key, value in opt.items():
                 if key in ["postprocessors", "download_ranges"]:
